@@ -10,7 +10,7 @@
 
 <body>
     <p class="text">
-        Hello8: <?=date(DATE_ATOM)?>
+        HH Bot: <?=date(DATE_ATOM)?>
     </p>
     <? include('cards.php'); ?>
 </body>

@@ -1,5 +1,8 @@
 <?
-$subcats = ['WordPress', 'Верстка', 'Лендинги', 'Laravel'];
+$cats = [
+    'Сайты' => [],
+    'Программирование' => ['Веб-программирование', 'Прикладное программирование', 'Разработка CRM и ERP']
+];
 
 include('simple_html_dom.php');
 
@@ -57,7 +60,27 @@ function get_html($req_url): simple_html_dom|null
     return null;
 }
 
+function send_msg($message): string
+{
+    $chat_name = "@MegapoopsusHH";
+    $token = "7777920094:AAG-_72cHQC7xXC1JDA5MgLkOTnzMBnB6sg";
+
+    $text = urlencode($message);
+    $url = "https://api.telegram.org/bot{$token}/sendMessage?parse_mode=html&chat_id={$chat_name}&text={$text}";
+
+    $ch = curl_init();
+    $optArray = array(
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true
+    );
+    curl_setopt_array($ch, $optArray);
+    $result = curl_exec($ch);
+    curl_close($ch);
+    return $result;
+}
+
 $html = get_html('https://www.fl.ru/vakansii/');
+// $html = get_html('https://www.fl.ru/vakansii/page-3/');
 //	if(false){
 // $html = str_get_html($content);
 // $html = str_get_html('<body><p>Hi</p></body>');
@@ -65,40 +88,36 @@ $html = get_html('https://www.fl.ru/vakansii/');
 // echo "html:";
 // var_dump($html);
 
-$last_link_file = 'last_link.txt';
 if ($html !== false) {
-    // $last_link = file_get_contents($last_link_file);
-    $last_link = null;
-    $last_link_new = null;
-    $no = 12;
+    $links_file = 'links.txt';
+    $last_links = explode("\n", file_get_contents($links_file));
+    $links = [];
+    // $no = 10;
     foreach ($html->find('.b-post') as $node) {
         // if(--$no === 0)
         //     break;
         $link = $node->find('.b-post__title a')[0]->href;
-        if ($link != $last_link) {
-            if ($last_link_new == null) {
-                $last_link_new = $link;
-                file_put_contents($last_link_file, $last_link_new);
-            }
+        $links[] = $link;
+        if (array_search($link, $last_links) === false) {
             $html2 = get_html('https://www.fl.ru' . $link);
-            $cats = $html2->find('[data-id=category-spec]');
-            $cat = $cats[0]->plaintext;
-            $subcat = $cats[1]->plaintext;
+            $cat_n = $html2->find('[data-id=category-spec]');
+            $cat = trim($cat_n[0]->plaintext);
+            $subcat = trim($cat_n[1]->plaintext);
 
-            if ($cat == 'Сайты' && array_search($subcat, $subcats) !== false) {
-                $head = $node->find('.b-post__title')[0]->plaintext;
-                $sal_scr = $node->find('.b-post__title + script')[0]->innertext;
+            if (array_key_exists($cat, $cats) && (count($cats[$cat]) === 0 || array_search($subcat, $cats[$cat]) !== false)) {
+                $head = trim($node->find('.b-post__title')[0]->plaintext);
+                $sal_scr = trim($node->find('.b-post__title + script')[0]->innertext);
                 preg_match("/document.write\('(.+)'\)/", $sal_scr, $m);
                 $sal_node = str_get_html($m[1]);
                 $sal = $sal_node->plaintext;
                 $body_scr = $node->find('.b-post__title + script + script')[0]->innertext;
                 preg_match("/document.write\('(.+)'\)/", $body_scr, $m);
                 $body_node = str_get_html($m[1]);
-                $body = $body_node->find('.b-post__txt')[0]->innertext;
+                $body = trim($body_node->find('.b-post__txt')[0]->plaintext);
                 $time_scr = $node->find('.b-post__foot > script')[0]->innertext;
                 preg_match("/document.write\('(.+)'\)/", $time_scr, $m);
                 $time_node = str_get_html($m[1]);
-                $time = $time_node->find('.b-post__txt ~ span + span + span')[0]->plaintext;
+                $time = trim($time_node->find('.b-post__txt ~ span + span + span')[0]->plaintext);
                 echo "<br><br>";
                 echo "<h2>$head</h2>";
                 echo "<h5>$link</h5>";
@@ -107,11 +126,13 @@ if ($html !== false) {
                 echo "<h4>$time</h4>";
                 echo "<h4>$cat / $subcat</h4>";
                 echo "<br><br>";
+                $msg = "<a href=\"https://www.fl.ru$link\"><b>$head</b></a>\n<u>$sal</u>\n$body\n$time\n<u>$cat / $subcat</u>";
+                $res = send_msg($msg);
+                // echo "Result:$res";
             }
-        } else {
-            break;
         }
     }
+    file_put_contents($links_file, implode("\n", $links));
 }
-;
+
 ?>
