@@ -63,7 +63,7 @@ function get_html($req_url): simple_html_dom|null
 function send_msg($message): string
 {
     $chat_name = "@MegapoopsusHH";
-    $token = file_get_contents('.t_token.txt');
+    $token = file_get_contents(__DIR__.'/.t_token.txt');
 
     $text = urlencode($message);
     $url = "https://api.telegram.org/bot{$token}/sendMessage?parse_mode=html&chat_id={$chat_name}&text={$text}";
@@ -89,7 +89,7 @@ $html = get_html('https://www.fl.ru/vakansii/');
 // var_dump($html);
 
 if ($html !== false) {
-    $links_file = 'links.txt';
+    $links_file = __DIR__.'/links.txt';
     $last_links = explode("\n", file_get_contents($links_file));
     $links = [];
     // $no = 10;
